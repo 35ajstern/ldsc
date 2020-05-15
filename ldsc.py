@@ -311,10 +311,13 @@ def ldscore(args, log):
             annot_matrix = np.multiply(annot_matrix, pq)
         else:
             annot_matrix = pq
-
-    log.log("Estimating LD Score.")
-    lN = geno_array.ldScoreVarBlocks(block_left, args.chunk_size, annot=annot_matrix)
-    col_prefix = "L2"; file_suffix = "l2"
+    if args.l2:
+        ldN = 2
+    else:
+        ldN = 1
+    log.log("Estimating LD^%d Score."%(ldN))
+    lN = geno_array.ldScoreVarBlocks(block_left, args.chunk_size, annot=annot_matrix,N=ldN)
+    col_prefix = "L%d"%(ldN); file_suffix = "l%d"%(ldN)
 
     if n_annot == 1:
         ldscore_colnames = [col_prefix+scale_suffix]
@@ -428,6 +431,8 @@ parser.add_argument('--bfile', default=None, type=str,
     help='Prefix for Plink .bed/.bim/.fam file')
 parser.add_argument('--l2', default=False, action='store_true',
     help='Estimate l2. Compatible with both jackknife and non-jackknife.')
+parser.add_argument('--l1', default=False, action='store_true',
+    help='Estimate l1. Compatible with both jackknife and non-jackknife.')
 # Filtering / Data Management for LD Score
 parser.add_argument('--extract', default=None, type=str,
     help='File with SNPs to include in LD Score estimation. '
@@ -601,8 +606,9 @@ if __name__ == '__main__':
         if args.n_blocks <= 1:
             raise ValueError('--n-blocks must be an integer > 1.')
         if args.bfile is not None:
-            if args.l2 is None:
-                raise ValueError('Must specify --l2 with --bfile.')
+            if args.l2 is None and args.l1 is None:
+                raise ValueError('Must specify --l2 or --l1 with --bfile.')
+
             if args.annot is not None and args.extract is not None:
                 raise ValueError('--annot and --extract are currently incompatible.')
             if args.cts_bin is not None and args.extract is not None:
